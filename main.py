@@ -1,4 +1,5 @@
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import ttk, messagebox
 import threading
 import time
@@ -39,58 +40,59 @@ class SlotCarManager:
         save_data('settings.json', settings)
 
     def create_widgets(self):
-        frame = tk.Frame(self.root, bg='#f0f0f0', bd=2, relief='sunken')
+        frame = ctk.CTkFrame(self.root, fg_color='#4a4a4a', corner_radius=10)
         frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
-        self.driver_label = tk.Label(frame, text="Driver Name:", bg='#f0f0f0')
+        self.driver_label = ctk.CTkLabel(frame, text="Driver Name:", fg_color='#4a4a4a')
         self.driver_label.grid(row=0, column=0, pady=5)
 
-        self.driver_entry = tk.Entry(frame)
+        self.driver_entry = ctk.CTkEntry(frame)
         self.driver_entry.grid(row=0, column=1, pady=5)
 
-        self.add_driver_button = tk.Button(frame, text="Add Driver", command=self.add_driver, bg='#007bff', fg='white', relief='raised', bd=2)
+        self.add_driver_button = ctk.CTkButton(frame, text="Add Driver", command=self.add_driver, fg_color='#17a2b8', text_color='white')
         self.add_driver_button.grid(row=0, column=2, pady=5, padx=5)
 
-        self.remove_driver_button = tk.Button(frame, text="Remove Driver", command=self.remove_driver, bg='#dc3545', fg='white', relief='raised', bd=2)
+        self.remove_driver_button = ctk.CTkButton(frame, text="Remove Driver", command=self.remove_driver, fg_color='#dc3545', text_color='white')
         self.remove_driver_button.grid(row=0, column=3, pady=5, padx=5)
 
-        self.driver_listbox = tk.Listbox(frame, bg='white', relief='groove', bd=2)
+        self.driver_listbox = tk.Listbox(frame)
+        self.driver_listbox.configure(background="#393939", foreground="white")
         self.driver_listbox.grid(row=1, column=0, columnspan=4, pady=10, sticky="nsew")
         self.update_driver_listbox()
 
-        self.laps_label = tk.Label(frame, text="Number of Laps:", bg='#f0f0f0')
+        self.laps_label = ctk.CTkLabel(frame, text="Number of Laps:", fg_color='#4a4a4a')
         self.laps_label.grid(row=2, column=0, pady=5)
 
-        self.laps_entry = tk.Entry(frame)
+        self.laps_entry = ctk.CTkEntry(frame)
         self.laps_entry.grid(row=2, column=1, pady=5)
 
-        self.start_race_button = tk.Button(frame, text="Start Race", command=self.start_race, bg='#28a745', fg='white', relief='raised', bd=2)
+        self.start_race_button = ctk.CTkButton(frame, text="Start Race", command=self.start_race, fg_color='#28a745', text_color='white')
         self.start_race_button.grid(row=2, column=2, pady=5, padx=5)
 
-        self.port_label = tk.Label(frame, text="Serial Port:", bg='#f0f0f0')
+        self.port_label = ctk.CTkLabel(frame, text="Serial Port:", fg_color='#4a4a4a')
         self.port_label.grid(row=3, column=0, pady=5)
 
-        self.port_entry = tk.Entry(frame)
+        self.port_entry = ctk.CTkEntry(frame)
         self.port_entry.insert(0, self.serial_port)
         self.port_entry.grid(row=3, column=1, pady=5)
 
-        self.set_port_button = tk.Button(frame, text="Set Port", command=self.set_serial_port, bg='#17a2b8', fg='white', relief='raised', bd=2)
+        self.set_port_button = ctk.CTkButton(frame, text="Set Port", command=self.set_serial_port, fg_color='#17a2b8', text_color='white')
         self.set_port_button.grid(row=3, column=2, pady=5, padx=5)
 
-        self.penalty_label = tk.Label(frame, text="Early Start Penalty (s):", bg='#f0f0f0')
+        self.penalty_label = ctk.CTkLabel(frame, text="Early Start Penalty (s):", fg_color='#4a4a4a')
         self.penalty_label.grid(row=4, column=0, pady=5)
 
-        self.penalty_entry = tk.Entry(frame)
+        self.penalty_entry = ctk.CTkEntry(frame)
         self.penalty_entry.insert(0, str(self.early_start_penalty))
         self.penalty_entry.grid(row=4, column=1, pady=5)
 
-        self.set_penalty_button = tk.Button(frame, text="Set Penalty", command=self.set_early_start_penalty, bg='#17a2b8', fg='white', relief='raised', bd=2)
+        self.set_penalty_button = ctk.CTkButton(frame, text="Set Penalty", command=self.set_early_start_penalty, fg_color='#17a2b8', text_color='white')
         self.set_penalty_button.grid(row=4, column=2, pady=5, padx=5)
 
-        self.countdown_label = tk.Label(frame, text="", font=("Helvetica", 16), bg='#f0f0f0')
+        self.countdown_label = ctk.CTkLabel(frame, text="", font=("Helvetica", 16), fg_color='#4a4a4a')
         self.countdown_label.grid(row=5, column=0, columnspan=4, pady=10)
 
-        self.results_button = tk.Button(frame, text="Show Results", command=self.show_results, bg='#ffc107', fg='white', relief='raised', bd=2)
+        self.results_button = ctk.CTkButton(frame, text="Show Results", command=self.show_results, fg_color='#17a2b8', text_color='white')
         self.results_button.grid(row=6, column=0, columnspan=4, pady=10)
 
         self.results_table = ttk.Treeview(frame, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
@@ -125,10 +127,13 @@ class SlotCarManager:
         try:
             driver_name = self.driver_entry.get()
             if driver_name:
-                self.drivers.append(driver_name)
-                save_data('drivers.json', self.drivers)
-                self.driver_entry.delete(0, tk.END)
-                self.update_driver_listbox()
+                if driver_name not in self.drivers:
+                    self.drivers.append(driver_name)
+                    save_data('drivers.json', self.drivers)
+                    self.driver_entry.delete(0, tk.END)
+                    self.update_driver_listbox()
+                else:
+                    messagebox.showerror("Error", "Driver name already exists.")
             else:
                 messagebox.showerror("Error", "Driver name cannot be empty.")
         except Exception as e:
@@ -153,7 +158,6 @@ class SlotCarManager:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to remove driver: {str(e)}")
 
-
     def update_driver_listbox(self):
         try:
             self.driver_listbox.delete(0, tk.END)
@@ -162,7 +166,7 @@ class SlotCarManager:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update driver list: {str(e)}")
 
-    def get_number_of_laps(self):
+    def get_number_of_times(self):
         try:
             laps = int(self.laps_entry.get())
             if laps > 0:
@@ -178,14 +182,9 @@ class SlotCarManager:
         if self.overlay_label:
             self.overlay_label.destroy()
         if self.results_table2:
-            self.overlay_label = tk.Label(self.results_table2, text=text, font=("Helvetica", 128, "bold"))
+            self.overlay_label = ctk.CTkLabel(self.results_table2, text=text, font=("Helvetica", 128, "bold"), fg_color='#ffffff', text_color='#000000')
             self.overlay_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-    def hide_overlay(self):
-        if self.overlay_label:
-            self.overlay_label.destroy()
-            self.overlay_label = None
-        
     def start_race(self):
         try:
             selected_driver = self.driver_listbox.curselection()
@@ -222,7 +221,7 @@ class SlotCarManager:
                     if check_early:
                         ser.close()
                         self.show_overlay("Early Start!")
-                        self.countdown_label.config(text="Early Start!")
+                        self.countdown_label.configure(text="Early Start!")
                         self.play_countdown_sound("GO")
                         self.run_race(driver, laps, True, True)
                         return
@@ -230,7 +229,7 @@ class SlotCarManager:
                     if counter >= 100:
                         counter = 0
                         self.show_overlay(f"{next}")
-                        self.countdown_label.config(text=f"Stage starts in: {next}")
+                        self.countdown_label.configure(text=f"Stage starts in: {next}")
                         self.play_countdown_sound(next)
                         next = next - 1
                 self.show_overlay("Go!")
@@ -243,7 +242,7 @@ class SlotCarManager:
 
     def run_race(self, driver, laps, early_start, count_first):
         try:
-            self.countdown_label.config(text="")
+            self.countdown_label.configure(text="")
             lap_times = []
             lap_count = 0
 
@@ -284,7 +283,7 @@ class SlotCarManager:
                 self.results_table.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
                 self.results_table.tag_configure('oddrow', background='white')
                 self.results_table.tag_configure('evenrow', background='#f0f0f0')
-            if self.results_table2:
+            if self.results_window:
                 self.results_table2.delete(*self.results_table2.get_children())
                 sorted_results2 = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
                 for index, result in enumerate(sorted_results2, start=1):
@@ -294,6 +293,18 @@ class SlotCarManager:
             self.dump_leaderboard_to_excel()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update results table: {str(e)}")
+    
+    def get_number_of_laps(self):
+        try:
+            laps = int(self.laps_entry.get())
+            if laps > 0:
+                return laps
+            else:
+                messagebox.showerror("Error", "Number of laps must be greater than zero.")
+                return None
+        except ValueError:
+            messagebox.showerror("Error", "Invalid number of laps. Please enter an integer.")
+            return None
 
     def dump_leaderboard_to_excel(self):
         try:
@@ -343,47 +354,68 @@ class SlotCarManager:
             messagebox.showerror("Error", f"Failed to dump leaderboard to Excel: {str(e)}")
 
     def show_results(self):
-        try:
-            if self.results_window:
-                self.results_window.destroy()
-                self.results_table2.destroy()
-            self.results_window = tk.Toplevel(self.root)
-            self.results_window.title("Race Results")
+        if self.results_window and self.results_window.winfo_exists():
+            self.results_window.lift()
+            return
+        self.results_window = ctk.CTkToplevel(self.root)
+        self.results_window.title("Race Results")
+        self.results_table2 = ttk.Treeview(self.results_window, columns=("Rank", "Driver", "Lap Times", "Best Lap"), show='headings', style="Custom.Treeview")
+        self.results_table2.heading("Rank", text="Pos")
+        self.results_table2.heading("Driver", text="Driver")
+        self.results_table2.heading("Lap Times", text="Lap Times (s)")
+        self.results_table2.heading("Best Lap", text="Best Lap (s)")
+        self.results_table2.column("Rank", anchor=tk.CENTER, width=50)
+        self.results_table2.column("Driver", anchor=tk.CENTER, width=200)
+        self.results_table2.column("Lap Times", anchor=tk.CENTER, width=300)
+        self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
+        self.results_table2.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+        sorted_results = sorted(self.results, key=lambda x: x['best_time'])
+        self.update_results_table()
 
-            results_frame = tk.Frame(self.results_window, bg='#f0f0f0')
-            results_frame.pack(fill=tk.BOTH, expand=True)
+    def show_race_results(self, result):
+        if self.results_window and self.results_window.winfo_exists():
+            self.results_window.lift()
+            self.update_results_table2()
+        else:
+            self.show_results()
 
-            results_frame.grid_rowconfigure(0, weight=1)
-            results_frame.grid_columnconfigure(0, weight=1)
+    def export_results_to_excel(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Race Results"
+        headers = ["Rank", "Driver", "Lap Times (s)", "Best Lap (s)"]
+        header_font = Font(bold=True)
+        header_alignment = Alignment(horizontal='center')
+        for col_num, header in enumerate(headers, 1):
+            cell = sheet.cell(row=1, column=col_num, value=header)
+            cell.font = header_font
+            cell.alignment = header_alignment
+        sorted_results = sorted(self.results, key=lambda x: x['best_time'])
+        for rank, result in enumerate(sorted_results, start=1):
+            driver = result['driver']
+            lap_times = ", ".join(f"{t:.2f}" for t in result['lap_times'])
+            best_time = result.get("last_time", "")
+            row = [rank, driver, lap_times, best_time]
+            for col_num, value in enumerate(row, 1):
+                cell = sheet.cell(row=rank + 1, column=col_num, value=value)
+                cell.alignment = Alignment(horizontal='center')
+        file_path = "race_results.xlsx"
+        workbook.save(file_path)
+        messagebox.showinfo("Export Successful", f"Results exported to {file_path}")
 
-            self.results_table2 = ttk.Treeview(results_frame, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
-            self.results_table2.heading("Rank", text="Pos")
-            self.results_table2.heading("Driver", text="Driver")
-            self.results_table2.heading("Last Lap", text="Last Lap (s)")
-            self.results_table2.heading("Best Lap", text="Best Lap (s)")
-            self.results_table2.column("Rank", anchor=tk.CENTER, width=50)
-            self.results_table2.column("Driver", anchor=tk.CENTER, width=250)
-            self.results_table2.column("Last Lap", anchor=tk.CENTER, width=150)
-            self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
-            self.results_table2.grid(row=0, column=0, sticky="nsew")
-
-            fullscreen_button = tk.Button(self.results_window, text="Toggle Fullscreen", command=lambda: self.toggle_fullscreen(self.results_window))
-            fullscreen_button.pack(pady=10)
-            self.update_results_table()
-
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to show results: {str(e)}")
-
-    def toggle_fullscreen(self, window):
-        state = not window.attributes('-fullscreen')
-        window.attributes('-fullscreen', state)
+    def on_close(self):
+        pygame.mixer.quit()
+        self.root.destroy()
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    ctk.set_appearance_mode("System")
+    ctk.set_default_color_theme("blue")
+    root = ctk.CTk()
     style = ttk.Style()
     style.configure("Custom.Treeview", font=("Helvetica", 14), rowheight=30)
     style.configure("Custom.Treeview.Heading", font=("Helvetica", 16, "bold"))
     style.configure("Custom.TreeviewLarge", font=("Helvetica", 20), rowheight=40)
     style.configure("Custom.TreeviewLarge.Heading", font=("Helvetica", 24, "bold"))
     app = SlotCarManager(root)
+    root.protocol("WM_DELETE_WINDOW", app.on_close)
     root.mainloop()
