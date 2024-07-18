@@ -15,6 +15,7 @@ class SlotCarManager:
         self.drivers = load_data('drivers.json')
         self.results = load_data('results.json')
         self.serial_port = 'COM3'
+        self.results_table2 = None
         self.early_start_penalty = 2  # default 2 seconds penalty
 
         self.create_widgets()
@@ -118,13 +119,15 @@ class SlotCarManager:
             selected_driver = self.driver_listbox.curselection()
             if selected_driver:
                 driver_name = self.driver_listbox.get(selected_driver)
-                self.drivers.remove(driver_name)
-                self.results = [result for result in self.results if result['driver'] != driver_name]
-                save_data('drivers.json', self.drivers)
-                save_data('results.json', self.results)
-                messagebox.showinfo("Success", f"Driver {driver_name} removed.")
-                self.update_driver_listbox()
-                self.update_results_table()
+                confirm = messagebox.askyesno("Confirm Deletion", f"Are you sure you want to remove {driver_name}?")
+                if confirm:
+                    self.drivers.remove(driver_name)
+                    self.results = [result for result in self.results if result['driver'] != driver_name]
+                    save_data('drivers.json', self.drivers)
+                    save_data('results.json', self.results)
+                    messagebox.showinfo("Success", f"Driver {driver_name} removed.")
+                    self.update_driver_listbox()
+                    self.update_results_table()
             else:
                 messagebox.showerror("Error", "No driver selected.")
         except Exception as e:
@@ -240,33 +243,45 @@ class SlotCarManager:
             sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
             for result in sorted_results:
                 self.results_table.insert("", tk.END, values=(result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"))
+            if self.results_table2:
+                self.results_table2.delete(*self.results_table2.get_children())
+                sorted_results2 = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
+                for result in sorted_results2:
+                    self.results_table2.insert("", tk.END, values=(result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"))
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update results table: {str(e)}")
 
     def show_results(self):
-        results_window = tk.Toplevel(self.root)
-        results_window.title("Race Results")
+        try:
+            results_window = tk.Toplevel(self.root)
+            results_window.title("Race Results")
 
-        results_window.attributes('-fullscreen', True)  # Enable fullscreen
+            results_frame = tk.Frame(results_window, bg='#f0f0f0')
+            results_frame.pack(fill=tk.BOTH, expand=True)
 
-        results_frame = tk.Frame(results_window, bg='#f0f0f0')
-        results_frame.pack(fill=tk.BOTH, expand=True)
+            self.results_table2 = ttk.Treeview(results_frame, columns=("Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
+            self.results_table2.heading("Driver", text="Driver")
+            self.results_table2.heading("Last Lap", text="Last Lap (s)")
+            self.results_table2.heading("Best Lap", text="Best Lap (s)")
+            self.results_table2.column("Driver", anchor=tk.CENTER, width=150)
+            self.results_table2.column("Last Lap", anchor=tk.CENTER, width=150)
+            self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
+            self.results_table2.grid(row=7, column=0, columnspan=4, pady=10, sticky="nsew")
 
-        results_table = ttk.Treeview(results_frame, columns=("Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.TreeviewLarge")
-        results_table.heading("Driver", text="Driver")
-        results_table.heading("Last Lap", text="Last Lap (s)")
-        results_table.heading("Best Lap", text="Best Lap (s)")
-        results_table.column("Driver", anchor=tk.CENTER, width=200)
-        results_table.column("Last Lap", anchor=tk.CENTER, width=200)
-        results_table.column("Best Lap", anchor=tk.CENTER, width=200)
-        results_table.pack(fill=tk.BOTH, expand=True)
+            sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
+            for result in sorted_results:
+                self.results_table2.insert("", tk.END, values=(result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"))
 
-        close_button = tk.Button(results_window, text="Close", command=results_window.destroy, bg='#dc3545', fg='white', relief='raised', bd=2)
-        close_button.pack(pady=10)
+            fullscreen_button = tk.Button(results_window, text="Toggle Fullscreen", command=lambda: self.toggle_fullscreen(results_window))
+            fullscreen_button.pack(pady=10)
 
-        sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
-        for result in sorted_results:
-            results_table.insert("", tk.END, values=(result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"))
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to show results: {str(e)}")
+
+
+    def toggle_fullscreen(self, window):
+        state = not window.attributes('-fullscreen')
+        window.attributes('-fullscreen', state)
 
 if __name__ == "__main__":
     root = tk.Tk()
