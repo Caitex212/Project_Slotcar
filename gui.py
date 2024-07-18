@@ -246,8 +246,10 @@ class SlotCarManager:
             if self.results_table2:
                 self.results_table2.delete(*self.results_table2.get_children())
                 sorted_results2 = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
-                for result in sorted_results2:
-                    self.results_table2.insert("", tk.END, values=(result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"))
+                for index, result in enumerate(sorted_results2, start=1):
+                    self.results_table2.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
+                    self.results_table2.tag_configure('oddrow', background='white')
+                    self.results_table2.tag_configure('evenrow', background='#f0f0f0')
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update results table: {str(e)}")
 
@@ -259,25 +261,32 @@ class SlotCarManager:
             results_frame = tk.Frame(results_window, bg='#f0f0f0')
             results_frame.pack(fill=tk.BOTH, expand=True)
 
-            self.results_table2 = ttk.Treeview(results_frame, columns=("Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
+            # Configure row and column to expand
+            results_frame.grid_rowconfigure(0, weight=1)
+            results_frame.grid_columnconfigure(0, weight=1)
+
+            self.results_table2 = ttk.Treeview(results_frame, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
+            self.results_table2.heading("Rank", text="Pos")
             self.results_table2.heading("Driver", text="Driver")
             self.results_table2.heading("Last Lap", text="Last Lap (s)")
             self.results_table2.heading("Best Lap", text="Best Lap (s)")
+            self.results_table2.column("Rank", anchor=tk.CENTER, width=50)
             self.results_table2.column("Driver", anchor=tk.CENTER, width=150)
             self.results_table2.column("Last Lap", anchor=tk.CENTER, width=150)
             self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
-            self.results_table2.grid(row=7, column=0, columnspan=4, pady=10, sticky="nsew")
+            self.results_table2.grid(row=0, column=0, sticky="nsew")
 
             sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
-            for result in sorted_results:
-                self.results_table2.insert("", tk.END, values=(result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"))
+            for index, result in enumerate(sorted_results, start=1):
+                self.results_table2.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
+                self.results_table2.tag_configure('oddrow', background='white')
+                self.results_table2.tag_configure('evenrow', background='#f0f0f0')
 
             fullscreen_button = tk.Button(results_window, text="Toggle Fullscreen", command=lambda: self.toggle_fullscreen(results_window))
             fullscreen_button.pack(pady=10)
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to show results: {str(e)}")
-
 
     def toggle_fullscreen(self, window):
         state = not window.attributes('-fullscreen')
