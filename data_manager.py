@@ -1,13 +1,19 @@
 import json
 
-def load_data(filename):
+def load_data(filename, type):
     try:
         with open(filename, 'r') as file:
             data = json.load(file)
     except FileNotFoundError:
-        data = {}
+        if type == 1:
+            data = []
+        else:
+            data = {}
     except json.JSONDecodeError:
-        data = {}
+        if type == 1:
+            data = []
+        else:
+            data = {}
     return data
 
 def save_data(filename, data):

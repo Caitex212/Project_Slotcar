@@ -14,9 +14,10 @@ class SlotCarManager:
         self.root = root
         self.root.title("Slot Car Rally Manager")
 
-        self.drivers = load_data('drivers.json')
-        self.results = load_data('results.json')
-        settings = load_data('settings.json')
+        self.overlay_label = None
+        self.drivers = load_data('drivers.json', 1)
+        self.results = load_data('results.json', 1)
+        settings = load_data('settings.json', 0)
         self.serial_port = settings.get('serial_port', 'COM3')
         self.early_start_penalty = settings.get('early_start_penalty', 2)
         self.results_table2 = None
@@ -122,7 +123,6 @@ class SlotCarManager:
             if driver_name:
                 self.drivers.append(driver_name)
                 save_data('drivers.json', self.drivers)
-                messagebox.showinfo("Success", f"Driver {driver_name} added.")
                 self.driver_entry.delete(0, tk.END)
                 self.update_driver_listbox()
             else:
@@ -158,6 +158,29 @@ class SlotCarManager:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update driver list: {str(e)}")
 
+    def get_number_of_laps(self):
+        try:
+            laps = int(self.laps_entry.get())
+            if laps > 0:
+                return laps
+            else:
+                messagebox.showerror("Error", "Number of laps must be greater than zero.")
+                return None
+        except ValueError:
+            messagebox.showerror("Error", "Invalid number of laps. Please enter an integer.")
+            return None
+        
+    def show_overlay(self, text):
+        if self.overlay_label:
+            self.overlay_label.destroy()
+        self.overlay_label = tk.Label(self.results_table2, text=text, font=("Helvetica", 48, "bold"))
+        self.overlay_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+
+    def hide_overlay(self):
+        if self.overlay_label:
+            self.overlay_label.destroy()
+            self.overlay_label = None
+        
     def start_race(self):
         try:
             selected_driver = self.driver_listbox.curselection()
@@ -188,11 +211,12 @@ class SlotCarManager:
                     time.sleep(0.01)
                     check_early = False
                     if ser.in_waiting > 0:
-                            line = ser.readline().decode('utf-8').strip()
-                            if line == '1':
-                                check_early = True
+                        line = ser.readline().decode('utf-8').strip()
+                        if line == '1':
+                            check_early = True
                     if check_early:
                         ser.close()
+                        self.show_overlay("Early Start!")
                         self.countdown_label.config(text="Early Start!")
                         self.play_countdown_sound("GO")
                         self.run_race(driver, laps, True, True)
@@ -200,13 +224,14 @@ class SlotCarManager:
                     counter = counter + 1
                     if counter >= 100:
                         counter = 0
-                        self.countdown_label.config(text=f"Race starts in {next}...")
+                        self.show_overlay(f"{next}")
+                        self.countdown_label.config(text=f"Stage starts in: {next}")
                         self.play_countdown_sound(next)
                         next = next - 1
-            self.countdown_label.config(text="Go!")
-            self.play_countdown_sound("GO")
-            ser.close()
-            self.run_race(driver, laps, False, False)
+                self.show_overlay("Go!")
+                self.play_countdown_sound("GO")
+                ser.close()
+                self.run_race(driver, laps, False, False)
         except Exception as e:
             messagebox.showerror("Error", f"Serial communication error: {str(e)}")
             return False
@@ -225,6 +250,7 @@ class SlotCarManager:
                     lap_time += self.early_start_penalty
                 lap_times.append(lap_time)
                 lap_count += 1
+                self.hide_overlay()
 
             best_lap = min(lap_times)
             last_lap = lap_times[-1]
@@ -245,30 +271,14 @@ class SlotCarManager:
         except Exception as e:
             messagebox.showerror("Error", f"Failed to run race: {str(e)}")
 
-
-    def get_number_of_laps(self):
-        try:
-            laps = int(self.laps_entry.get())
-            if laps > 0:
-                return laps
-            else:
-                messagebox.showerror("Error", "Number of laps must be greater than zero.")
-                return None
-        except ValueError:
-            messagebox.showerror("Error", "Invalid number of laps. Please enter an integer.")
-            return None
-
     def update_results_table(self):
         try:
             self.results_table.delete(*self.results_table.get_children())
             sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
-            for result in sorted_results:
-                self.results_table.delete(*self.results_table.get_children())
-                sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
-                for index, result in enumerate(sorted_results, start=1):
-                    self.results_table.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
-                    self.results_table.tag_configure('oddrow', background='white')
-                    self.results_table.tag_configure('evenrow', background='#f0f0f0')
+            for index, result in enumerate(sorted_results, start=1):
+                self.results_table.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
+                self.results_table.tag_configure('oddrow', background='white')
+                self.results_table.tag_configure('evenrow', background='#f0f0f0')
             if self.results_table2:
                 self.results_table2.delete(*self.results_table2.get_children())
                 sorted_results2 = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
@@ -301,14 +311,9 @@ class SlotCarManager:
             self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
             self.results_table2.grid(row=0, column=0, sticky="nsew")
 
-            sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
-            for index, result in enumerate(sorted_results, start=1):
-                self.results_table2.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
-                self.results_table2.tag_configure('oddrow', background='white')
-                self.results_table2.tag_configure('evenrow', background='#f0f0f0')
-
             fullscreen_button = tk.Button(results_window, text="Toggle Fullscreen", command=lambda: self.toggle_fullscreen(results_window))
             fullscreen_button.pack(pady=10)
+            self.update_results_table()
 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to show results: {str(e)}")
