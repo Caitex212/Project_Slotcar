@@ -3,11 +3,12 @@ import json
 def load_data(filename):
     try:
         with open(filename, 'r') as file:
-            return json.load(file)
+            data = json.load(file)
     except FileNotFoundError:
-        return []
+        data = {}
     except json.JSONDecodeError:
-        return []
+        data = {}
+    return data
 
 def save_data(filename, data):
     with open(filename, 'w') as file:

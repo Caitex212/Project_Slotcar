@@ -16,12 +16,22 @@ class SlotCarManager:
 
         self.drivers = load_data('drivers.json')
         self.results = load_data('results.json')
-        self.serial_port = 'COM3'
+        settings = load_data('settings.json')
+        self.serial_port = settings.get('serial_port', 'COM3')
+        self.early_start_penalty = settings.get('early_start_penalty', 2)
         self.results_table2 = None
-        self.early_start_penalty = 2  # default 2 seconds penalty
 
         self.create_widgets()
         pygame.mixer.init()
+
+        self.save_settings()
+
+    def save_settings(self):
+        settings = {
+            'serial_port': self.serial_port,
+            'early_start_penalty': self.early_start_penalty
+        }
+        save_data('settings.json', settings)
 
     def create_widgets(self):
         frame = tk.Frame(self.root, bg='#f0f0f0', bd=2, relief='sunken')
@@ -93,6 +103,7 @@ class SlotCarManager:
     def set_serial_port(self):
         try:
             self.serial_port = self.port_entry.get()
+            self.save_settings()
             messagebox.showinfo("Serial Port Set", f"Serial port set to {self.serial_port}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to set serial port: {str(e)}")
@@ -100,6 +111,7 @@ class SlotCarManager:
     def set_early_start_penalty(self):
         try:
             self.early_start_penalty = int(self.penalty_entry.get())
+            self.save_settings()
             messagebox.showinfo("Penalty Set", f"Early start penalty set to {self.early_start_penalty} seconds")
         except ValueError:
             messagebox.showerror("Error", "Invalid penalty value. Please enter an integer.")
@@ -217,7 +229,6 @@ class SlotCarManager:
             best_lap = min(lap_times)
             last_lap = lap_times[-1]
 
-            # Update existing driver or append new entry
             driver_found = False
             for result in self.results:
                 if result['driver'] == driver:
@@ -276,7 +287,6 @@ class SlotCarManager:
             results_frame = tk.Frame(results_window, bg='#f0f0f0')
             results_frame.pack(fill=tk.BOTH, expand=True)
 
-            # Configure row and column to expand
             results_frame.grid_rowconfigure(0, weight=1)
             results_frame.grid_columnconfigure(0, weight=1)
 
