@@ -119,13 +119,17 @@ class SlotCarManager:
             if selected_driver:
                 driver_name = self.driver_listbox.get(selected_driver)
                 self.drivers.remove(driver_name)
+                self.results = [result for result in self.results if result['driver'] != driver_name]
                 save_data('drivers.json', self.drivers)
+                save_data('results.json', self.results)
                 messagebox.showinfo("Success", f"Driver {driver_name} removed.")
                 self.update_driver_listbox()
+                self.update_results_table()
             else:
                 messagebox.showerror("Error", "No driver selected.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to remove driver: {str(e)}")
+
 
     def update_driver_listbox(self):
         try:
@@ -200,11 +204,23 @@ class SlotCarManager:
             best_lap = min(lap_times)
             last_lap = lap_times[-1]
 
-            self.results.append({'driver': driver, 'last_time': last_lap, 'best_time': best_lap})
+            # Update existing driver or append new entry
+            driver_found = False
+            for result in self.results:
+                if result['driver'] == driver:
+                    result['last_time'] = last_lap
+                    result['best_time'] = min(result['best_time'], best_lap)
+                    driver_found = True
+                    break
+
+            if not driver_found:
+                self.results.append({'driver': driver, 'last_time': last_lap, 'best_time': best_lap})
+
             save_data('results.json', self.results)
             self.update_results_table()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to run race: {str(e)}")
+
 
     def get_number_of_laps(self):
         try:
