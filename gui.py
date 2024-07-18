@@ -173,7 +173,7 @@ class SlotCarManager:
     def show_overlay(self, text):
         if self.overlay_label:
             self.overlay_label.destroy()
-        self.overlay_label = tk.Label(self.results_table2, text=text, font=("Helvetica", 48, "bold"))
+        self.overlay_label = tk.Label(self.results_table2, text=text, font=("Helvetica", 128, "bold"))
         self.overlay_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     def hide_overlay(self):
