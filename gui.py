@@ -166,10 +166,10 @@ class SlotCarManager:
     def countdown(self, seconds, driver, laps):
         try:
             with serial.Serial(self.serial_port, 9600, timeout=1) as ser:
-                for second in range(seconds, 0, -1):
-                    self.countdown_label.config(text=f"Race starts in {second}...")
-                    self.play_countdown_sound(second)
-                    time.sleep(1)
+                next = seconds
+                counter = 0
+                for second in range((seconds + 1) * 100, 0, -1):
+                    time.sleep(0.01)
                     check_early = False
                     if ser.in_waiting > 0:
                             line = ser.readline().decode('utf-8').strip()
@@ -181,6 +181,12 @@ class SlotCarManager:
                         self.play_countdown_sound("GO")
                         self.run_race(driver, laps, True, True)
                         return
+                    counter = counter + 1
+                    if counter >= 100:
+                        counter = 0
+                        self.countdown_label.config(text=f"Race starts in {next}...")
+                        self.play_countdown_sound(next)
+                        next = next - 1
             self.countdown_label.config(text="Go!")
             self.play_countdown_sound("GO")
             ser.close()
