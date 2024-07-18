@@ -21,6 +21,7 @@ class SlotCarManager:
         self.serial_port = settings.get('serial_port', 'COM3')
         self.early_start_penalty = settings.get('early_start_penalty', 2)
         self.results_table2 = None
+        self.results_window = None
 
         self.create_widgets()
         pygame.mixer.init()
@@ -173,8 +174,9 @@ class SlotCarManager:
     def show_overlay(self, text):
         if self.overlay_label:
             self.overlay_label.destroy()
-        self.overlay_label = tk.Label(self.results_table2, text=text, font=("Helvetica", 128, "bold"))
-        self.overlay_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+        if self.results_table2:
+            self.overlay_label = tk.Label(self.results_table2, text=text, font=("Helvetica", 128, "bold"))
+            self.overlay_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     def hide_overlay(self):
         if self.overlay_label:
@@ -291,10 +293,13 @@ class SlotCarManager:
 
     def show_results(self):
         try:
-            results_window = tk.Toplevel(self.root)
-            results_window.title("Race Results")
+            if self.results_window:
+                self.results_window.destroy()
+                self.results_table2.destroy()
+            self.results_window = tk.Toplevel(self.root)
+            self.results_window.title("Race Results")
 
-            results_frame = tk.Frame(results_window, bg='#f0f0f0')
+            results_frame = tk.Frame(self.results_window, bg='#f0f0f0')
             results_frame.pack(fill=tk.BOTH, expand=True)
 
             results_frame.grid_rowconfigure(0, weight=1)
@@ -311,7 +316,7 @@ class SlotCarManager:
             self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
             self.results_table2.grid(row=0, column=0, sticky="nsew")
 
-            fullscreen_button = tk.Button(results_window, text="Toggle Fullscreen", command=lambda: self.toggle_fullscreen(results_window))
+            fullscreen_button = tk.Button(self.results_window, text="Toggle Fullscreen", command=lambda: self.toggle_fullscreen(self.results_window))
             fullscreen_button.pack(pady=10)
             self.update_results_table()
 
