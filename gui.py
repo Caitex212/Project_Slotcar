@@ -8,13 +8,14 @@ import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 import serial
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 
 class SlotCarManager:
     def __init__(self, root):
         self.root = root
         self.root.title("Slot Car Rally Manager")
 
-        self.overlay_label = None
         self.drivers = load_data('drivers.json', 1)
         self.results = load_data('results.json', 1)
         settings = load_data('settings.json', 0)
@@ -22,6 +23,7 @@ class SlotCarManager:
         self.early_start_penalty = settings.get('early_start_penalty', 2)
         self.results_table2 = None
         self.results_window = None
+        self.overlay_label = None
 
         self.create_widgets()
         pygame.mixer.init()
@@ -288,8 +290,56 @@ class SlotCarManager:
                     self.results_table2.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
                     self.results_table2.tag_configure('oddrow', background='white')
                     self.results_table2.tag_configure('evenrow', background='#f0f0f0')
+            self.dump_leaderboard_to_excel()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update results table: {str(e)}")
+
+    def dump_leaderboard_to_excel(self):
+        try:
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Leaderboard"
+
+            headers = ["Rank", "Driver", "Last Lap (s)", "Best Lap (s)"]
+            ws.append(headers)
+
+            for col in ws.iter_cols(min_col=1, max_col=4, min_row=1, max_row=1):
+                for cell in col:
+                    cell.font = Font(bold=True)
+                    cell.alignment = Alignment(horizontal="center")
+                    cell.border = Border(
+                        left=Side(border_style="thin"),
+                        right=Side(border_style="thin"),
+                        top=Side(border_style="thin"),
+                        bottom=Side(border_style="thin")
+                    )
+                    ws.column_dimensions[cell.column_letter].width = 20
+                ws.column_dimensions["A"].width = 10
+                ws.column_dimensions["B"].width = 40
+
+            sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
+
+            for index, result in enumerate(sorted_results, start=1):
+                row_data = [index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"]
+                row_index = ws.max_row + 1
+                ws.append(row_data)
+
+                for col_index, cell_value in enumerate(row_data, start=1):
+                    cell = ws.cell(row=row_index, column=col_index)
+                    cell.alignment = Alignment(horizontal="center")
+                    cell.border = Border(
+                        left=Side(border_style="thin"),
+                        right=Side(border_style="thin"),
+                        top=Side(border_style="thin"),
+                        bottom=Side(border_style="thin")
+                    )
+
+                    if index % 2 == 0:
+                        cell.fill = PatternFill(start_color="DDDDDD", end_color="DDDDDD", fill_type="solid")
+
+            wb.save("leaderboard.xlsx")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to dump leaderboard to Excel: {str(e)}")
 
     def show_results(self):
         try:
