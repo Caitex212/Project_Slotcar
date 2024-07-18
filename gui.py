@@ -4,6 +4,8 @@ from data_manager import load_data, save_data
 from serial_communication import record_lap_time
 import threading
 import time
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 import serial
 
@@ -76,11 +78,13 @@ class SlotCarManager:
         self.results_button = tk.Button(frame, text="Show Results", command=self.show_results, bg='#ffc107', fg='white', relief='raised', bd=2)
         self.results_button.grid(row=6, column=0, columnspan=4, pady=10)
 
-        self.results_table = ttk.Treeview(frame, columns=("Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
+        self.results_table = ttk.Treeview(frame, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
+        self.results_table.heading("Rank", text="Pos")
         self.results_table.heading("Driver", text="Driver")
         self.results_table.heading("Last Lap", text="Last Lap (s)")
         self.results_table.heading("Best Lap", text="Best Lap (s)")
-        self.results_table.column("Driver", anchor=tk.CENTER, width=150)
+        self.results_table.column("Rank", anchor=tk.CENTER, width=50)
+        self.results_table.column("Driver", anchor=tk.CENTER, width=250)
         self.results_table.column("Last Lap", anchor=tk.CENTER, width=150)
         self.results_table.column("Best Lap", anchor=tk.CENTER, width=150)
         self.results_table.grid(row=7, column=0, columnspan=4, pady=10, sticky="nsew")
@@ -248,7 +252,12 @@ class SlotCarManager:
             self.results_table.delete(*self.results_table.get_children())
             sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
             for result in sorted_results:
-                self.results_table.insert("", tk.END, values=(result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"))
+                self.results_table.delete(*self.results_table.get_children())
+                sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
+                for index, result in enumerate(sorted_results, start=1):
+                    self.results_table.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
+                    self.results_table.tag_configure('oddrow', background='white')
+                    self.results_table.tag_configure('evenrow', background='#f0f0f0')
             if self.results_table2:
                 self.results_table2.delete(*self.results_table2.get_children())
                 sorted_results2 = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
@@ -277,7 +286,7 @@ class SlotCarManager:
             self.results_table2.heading("Last Lap", text="Last Lap (s)")
             self.results_table2.heading("Best Lap", text="Best Lap (s)")
             self.results_table2.column("Rank", anchor=tk.CENTER, width=50)
-            self.results_table2.column("Driver", anchor=tk.CENTER, width=150)
+            self.results_table2.column("Driver", anchor=tk.CENTER, width=250)
             self.results_table2.column("Last Lap", anchor=tk.CENTER, width=150)
             self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
             self.results_table2.grid(row=0, column=0, sticky="nsew")
