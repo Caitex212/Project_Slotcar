@@ -2,4 +2,6 @@ results.json
 drivers.json
 settings.json
 leaderboard.xlsx
+dist
+build
 __pycache__
