@@ -157,30 +157,27 @@ class SlotCarManager:
             print(f"Failed to play countdown sound: {str(e)}")
 
     def countdown(self, seconds, driver, laps):
-        for second in range(seconds, 0, -1):
-            self.countdown_label.config(text=f"Race starts in {second}...")
-            self.play_countdown_sound(second)
-            time.sleep(1)
-            if self.check_early_start():
-                self.countdown_label.config(text="Early Start!")
-                self.play_countdown_sound("GO")
-                self.run_race(driver, laps, True, True)
-                return
-        self.countdown_label.config(text="Go!")
-        self.play_countdown_sound("GO")
-        self.run_race(driver, laps, False, False)
-
-    def check_early_start(self):
         try:
             with serial.Serial(self.serial_port, 9600, timeout=1) as ser:
-                while True:
+                for second in range(seconds, 0, -1):
+                    self.countdown_label.config(text=f"Race starts in {second}...")
+                    self.play_countdown_sound(second)
+                    time.sleep(1)
+                    check_early = False
                     if ser.in_waiting > 0:
-                        line = ser.readline().decode('utf-8').strip()
-                        if line == '1':
-                            return True
-                        return False
-                    else:
-                        return False
+                            line = ser.readline().decode('utf-8').strip()
+                            if line == '1':
+                                check_early = True
+                    if check_early:
+                        ser.close()
+                        self.countdown_label.config(text="Early Start!")
+                        self.play_countdown_sound("GO")
+                        self.run_race(driver, laps, True, True)
+                        return
+            self.countdown_label.config(text="Go!")
+            self.play_countdown_sound("GO")
+            ser.close()
+            self.run_race(driver, laps, False, False)
         except Exception as e:
             messagebox.showerror("Error", f"Serial communication error: {str(e)}")
             return False
