@@ -8,4 +8,5 @@ build
 icon.png
 app.ico
 builds
+logs
 __pycache__
