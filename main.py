@@ -44,7 +44,7 @@ class SlotCarManager(ctk.CTk):
     def __init__(self, root):
         super().__init__()
         self.root = root
-        self.root.title("Slot Car Rally Manager")
+        self.root.title("Project Slotcar")
 
         self.drivers = load_data('drivers.json', 1)
         self.results = load_data('results.json', 1)
@@ -406,8 +406,12 @@ class SlotCarManager(ctk.CTk):
         self.results_table2.column("Lap Times", anchor=tk.CENTER, width=300)
         self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
         self.results_table2.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
-        sorted_results = sorted(self.results, key=lambda x: x['best_time'])
+        root.protocol("WM_DELETE_WINDOW", self.on_leaderboard_close)
         self.update_results_table()
+
+    def leaderboard_close(self):
+        self.results_window.destroy()
+        self.results_window = None
 
     def show_race_results(self, result):
         if self.results_window and self.results_window.winfo_exists():
@@ -443,6 +447,7 @@ class SlotCarManager(ctk.CTk):
     def on_close(self):
         pygame.mixer.quit()
         self.root.destroy()
+        exit()
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("System")
