@@ -13,7 +13,6 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 
 from data_manager import load_data, save_data
-from serial_communication import record_lap_time
 
 class ScrollableRadiobuttonFrame(ctk.CTkScrollableFrame):
     def __init__(self, master, item_list, command=None, **kwargs):
@@ -298,31 +297,39 @@ class SlotCarManager(ctk.CTk):
                 
             while lap_count < laps:
                 lap_start = time.time()
-                lap_end = record_lap_time(self.serial_port, count_first_temp)
-                count_first_temp = True
-                if not self.disqualified:
-                    lap_time = lap_end - lap_start
-                    if lap_count == 0 and early_start:
-                        lap_time += self.early_start_penalty
-                    lap_times.append(lap_time)
-                    lap_count += 1
-                    self.hide_overlay()
-                    driver_found = False
-                    for result in self.results:
-                        if result['driver'] == driver:
-                            result['last_time'] = lap_time
-                            result['best_time'] = min(result['best_time'], lap_time)
-                            driver_found = True
-                            break
-                    if not driver_found:
-                        self.results.append({'driver': driver, 'last_time': lap_time, 'best_time': lap_time})
-                    save_data('results.json', self.results)
-                    self.update_results_table()
-                else:
-                    self.disqualified = False
-                    self.play_sound(f"disqualified/{random.randint(1, 3)}")
-                    self.countdown_label.configure(text="Disqualified")
-                    return
+                lap_end = None
+                with serial.Serial(self.serial_port, 9600, timeout=1) as ser:
+                    while True:
+                        if ser.in_waiting > 0:
+                            line = ser.readline().decode('utf-8').strip()
+                            if line == '1':
+                                if count_first_temp:
+                                    lap_end = time.time()
+                                    break
+                                else:
+                                    count_first_temp = True
+                        if self.disqualified:
+                            self.disqualified = False
+                            self.play_sound(f"disqualified/{random.randint(1, 3)}")
+                            self.countdown_label.configure(text="Disqualified")
+                            return
+                lap_time = lap_end - lap_start
+                if lap_count == 0 and early_start:
+                    lap_time += self.early_start_penalty
+                lap_times.append(lap_time)
+                lap_count += 1
+                self.hide_overlay()
+                driver_found = False
+                for result in self.results:
+                    if result['driver'] == driver:
+                        result['last_time'] = lap_time
+                        result['best_time'] = min(result['best_time'], lap_time)
+                        driver_found = True
+                        break
+                if not driver_found:
+                    self.results.append({'driver': driver, 'last_time': lap_time, 'best_time': lap_time})
+                save_data('results.json', self.results)
+                self.update_results_table()
                 
             save_data('results.json', self.results)
             self.update_results_table()
