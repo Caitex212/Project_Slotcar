@@ -6,6 +6,7 @@ import time
 import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
+import sys
 import serial
 import random
 from openpyxl import Workbook
@@ -235,18 +236,30 @@ class SlotCarManager(ctk.CTk):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to start race: {str(e)}")
 
-    def play_countdown_sound(self, second):
+    def play_sound(self, second):
         try:
-            sound_file = f"sounds/{second}.wav"
+            sound_folder_path = self.get_data_path('sounds')
+            sound_file = f"{sound_folder_path}/{second}.wav"
             pygame.mixer.Sound(sound_file).play()
         except Exception as e:
-            print(f"Failed to play countdown sound: {str(e)}")
+            print(f"Failed to play sound: {str(e)}")
+
+    def get_data_path(self,relative_path):
+        if getattr(sys, 'frozen', False):
+            # The application is running in a frozen state (e.g., bundled with PyInstaller)
+            base_path = sys._MEIPASS
+        else:
+            # The application is running in a normal Python environment
+            base_path = os.path.dirname(__file__)
+
+        return os.path.join(base_path, relative_path)
 
     def countdown(self, seconds, driver, laps):
         try:
             with serial.Serial(self.serial_port, 9600, timeout=1) as ser:
                 next = seconds
                 counter = 0
+                self.disqualified = False
                 for second in range((seconds + 1) * 100, 0, -1):
                     time.sleep(0.01)
                     check_early = False
@@ -258,7 +271,7 @@ class SlotCarManager(ctk.CTk):
                         ser.close()
                         self.show_overlay("Early Start!")
                         self.countdown_label.configure(text="Early Start!")
-                        self.play_countdown_sound(f"false_start/{random.randint(1, 3)}")
+                        self.play_sound(f"false_start/{random.randint(1, 3)}")
                         self.run_race(driver, laps, True, True)
                         return
                     counter = counter + 1
@@ -266,10 +279,10 @@ class SlotCarManager(ctk.CTk):
                         counter = 0
                         self.show_overlay(next)
                         self.countdown_label.configure(text=f"Stage starts in: {next}")
-                        self.play_countdown_sound(f"countdown/{next}")
+                        self.play_sound(f"countdown/{next}")
                         next = next - 1
                 self.show_overlay("Go!")
-                self.play_countdown_sound("countdown/GO")
+                self.play_sound("countdown/GO")
                 ser.close()
                 self.run_race(driver, laps, False, False)
         except Exception as e:
@@ -286,48 +299,35 @@ class SlotCarManager(ctk.CTk):
             while lap_count < laps:
                 lap_start = time.time()
                 lap_end = record_lap_time(self.serial_port, count_first_temp)
+                count_first_temp = True
                 if not self.disqualified:
-                    count_first_temp = True
                     lap_time = lap_end - lap_start
                     if lap_count == 0 and early_start:
                         lap_time += self.early_start_penalty
+                    lap_times.append(lap_time)
+                    lap_count += 1
+                    self.hide_overlay()
                     driver_found = False
                     for result in self.results:
                         if result['driver'] == driver:
                             result['last_time'] = lap_time
+                            result['best_time'] = min(result['best_time'], lap_time)
                             driver_found = True
                             break
                     if not driver_found:
                         self.results.append({'driver': driver, 'last_time': lap_time, 'best_time': lap_time})
                     save_data('results.json', self.results)
                     self.update_results_table()
-                    lap_times.append(lap_time)
-                    lap_count += 1
-                    self.hide_overlay()
                 else:
                     self.disqualified = False
-                    self.play_countdown_sound(f"disqualified/{random.randint(1, 3)}")
+                    self.play_sound(f"disqualified/{random.randint(1, 3)}")
                     self.countdown_label.configure(text="Disqualified")
                     return
-
-            best_lap = min(lap_times)
-            last_lap = lap_times[-1]
-
-            driver_found = False
-            for result in self.results:
-                if result['driver'] == driver:
-                    result['last_time'] = last_lap
-                    result['best_time'] = min(result['best_time'], best_lap)
-                    driver_found = True
-                    break
-
-            if not driver_found:
-                self.results.append({'driver': driver, 'last_time': last_lap, 'best_time': best_lap})
-
+                
             save_data('results.json', self.results)
             self.update_results_table()
             self.countdown_label.configure(text="Finished")
-            self.play_countdown_sound(f"well_done/{random.randint(1, 3)}")
+            self.play_sound(f"well_done/{random.randint(1, 3)}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to run race: {str(e)}")
 
@@ -340,12 +340,15 @@ class SlotCarManager(ctk.CTk):
                 self.results_table.tag_configure('oddrow', background='white')
                 self.results_table.tag_configure('evenrow', background='#f0f0f0')
             if self.results_window:
-                self.results_table2.delete(*self.results_table2.get_children())
-                sorted_results2 = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
-                for index, result in enumerate(sorted_results2, start=1):
-                    self.results_table2.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
-                    self.results_table2.tag_configure('oddrow', background='white')
-                    self.results_table2.tag_configure('evenrow', background='#f0f0f0')
+                try:
+                    self.results_table2.delete(*self.results_table2.get_children())
+                    sorted_results2 = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
+                    for index, result in enumerate(sorted_results2, start=1):
+                        self.results_table2.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
+                        self.results_table2.tag_configure('oddrow', background='white')
+                        self.results_table2.tag_configure('evenrow', background='#f0f0f0')
+                except Exception as e:
+                    print("Error", f"Failed to update results table: {str(e)}")
             self.dump_leaderboard_to_excel()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update results table: {str(e)}")
@@ -415,22 +418,17 @@ class SlotCarManager(ctk.CTk):
             return
         self.results_window = ctk.CTkToplevel(self.root)
         self.results_window.title("Race Results")
-        self.results_table2 = ttk.Treeview(self.results_window, columns=("Rank", "Driver", "Lap Times", "Best Lap"), show='headings', style="Custom.Treeview")
+        self.results_table2 = ttk.Treeview(self.results_window, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
         self.results_table2.heading("Rank", text="Pos")
         self.results_table2.heading("Driver", text="Driver")
-        self.results_table2.heading("Lap Times", text="Lap Times (s)")
+        self.results_table2.heading("Last Lap", text="Last Lap (s)")
         self.results_table2.heading("Best Lap", text="Best Lap (s)")
         self.results_table2.column("Rank", anchor=tk.CENTER, width=50)
         self.results_table2.column("Driver", anchor=tk.CENTER, width=200)
-        self.results_table2.column("Lap Times", anchor=tk.CENTER, width=300)
+        self.results_table2.column("Last Lap", anchor=tk.CENTER, width=300)
         self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
         self.results_table2.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
-        root.protocol("WM_DELETE_WINDOW", self.on_leaderboard_close)
         self.update_results_table()
-
-    def on_leaderboard_close(self):
-        self.results_window.destroy()
-        self.results_window = None
 
     def show_race_results(self, result):
         if self.results_window and self.results_window.winfo_exists():
@@ -443,7 +441,7 @@ class SlotCarManager(ctk.CTk):
         workbook = Workbook()
         sheet = workbook.active
         sheet.title = "Race Results"
-        headers = ["Rank", "Driver", "Lap Times (s)", "Best Lap (s)"]
+        headers = ["Rank", "Driver", "Last Lap (s)", "Best Lap (s)"]
         header_font = Font(bold=True)
         header_alignment = Alignment(horizontal='center')
         for col_num, header in enumerate(headers, 1):
@@ -466,7 +464,7 @@ class SlotCarManager(ctk.CTk):
     def on_close(self):
         pygame.mixer.quit()
         self.root.destroy()
-        exit()
+        sys.exit()
 
 if __name__ == "__main__":
     ctk.set_appearance_mode("System")
