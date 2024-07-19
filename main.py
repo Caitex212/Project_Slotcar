@@ -40,16 +40,16 @@ class SlotCarManager:
         save_data('settings.json', settings)
 
     def create_widgets(self):
-        frame = ctk.CTkFrame(self.root, fg_color='#4a4a4a', corner_radius=10)
+        frame = ctk.CTkFrame(self.root, corner_radius=10)
         frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
-        self.driver_label = ctk.CTkLabel(frame, text="Driver Name:", fg_color='#4a4a4a')
+        self.driver_label = ctk.CTkLabel(frame, text="Driver Name:")
         self.driver_label.grid(row=0, column=0, pady=5)
 
         self.driver_entry = ctk.CTkEntry(frame)
         self.driver_entry.grid(row=0, column=1, pady=5)
 
-        self.add_driver_button = ctk.CTkButton(frame, text="Add Driver", command=self.add_driver, fg_color='#17a2b8', text_color='white')
+        self.add_driver_button = ctk.CTkButton(frame, text="Add Driver", command=self.add_driver)
         self.add_driver_button.grid(row=0, column=2, pady=5, padx=5)
 
         self.remove_driver_button = ctk.CTkButton(frame, text="Remove Driver", command=self.remove_driver, fg_color='#dc3545', text_color='white')
@@ -60,7 +60,7 @@ class SlotCarManager:
         self.driver_listbox.grid(row=1, column=0, columnspan=4, pady=10, sticky="nsew")
         self.update_driver_listbox()
 
-        self.laps_label = ctk.CTkLabel(frame, text="Number of Laps:", fg_color='#4a4a4a')
+        self.laps_label = ctk.CTkLabel(frame, text="Number of Laps:")
         self.laps_label.grid(row=2, column=0, pady=5)
 
         self.laps_entry = ctk.CTkEntry(frame)
@@ -69,30 +69,30 @@ class SlotCarManager:
         self.start_race_button = ctk.CTkButton(frame, text="Start Race", command=self.start_race, fg_color='#28a745', text_color='white')
         self.start_race_button.grid(row=2, column=2, pady=5, padx=5)
 
-        self.port_label = ctk.CTkLabel(frame, text="Serial Port:", fg_color='#4a4a4a')
+        self.port_label = ctk.CTkLabel(frame, text="Serial Port:")
         self.port_label.grid(row=3, column=0, pady=5)
 
         self.port_entry = ctk.CTkEntry(frame)
         self.port_entry.insert(0, self.serial_port)
         self.port_entry.grid(row=3, column=1, pady=5)
 
-        self.set_port_button = ctk.CTkButton(frame, text="Set Port", command=self.set_serial_port, fg_color='#17a2b8', text_color='white')
+        self.set_port_button = ctk.CTkButton(frame, text="Set Port", command=self.set_serial_port)
         self.set_port_button.grid(row=3, column=2, pady=5, padx=5)
 
-        self.penalty_label = ctk.CTkLabel(frame, text="Early Start Penalty (s):", fg_color='#4a4a4a')
+        self.penalty_label = ctk.CTkLabel(frame, text="Early Start Penalty (s):")
         self.penalty_label.grid(row=4, column=0, pady=5)
 
         self.penalty_entry = ctk.CTkEntry(frame)
         self.penalty_entry.insert(0, str(self.early_start_penalty))
         self.penalty_entry.grid(row=4, column=1, pady=5)
 
-        self.set_penalty_button = ctk.CTkButton(frame, text="Set Penalty", command=self.set_early_start_penalty, fg_color='#17a2b8', text_color='white')
+        self.set_penalty_button = ctk.CTkButton(frame, text="Set Penalty", command=self.set_early_start_penalty)
         self.set_penalty_button.grid(row=4, column=2, pady=5, padx=5)
 
-        self.countdown_label = ctk.CTkLabel(frame, text="", font=("Helvetica", 16), fg_color='#4a4a4a')
+        self.countdown_label = ctk.CTkLabel(frame, text="", font=("Helvetica", 16))
         self.countdown_label.grid(row=5, column=0, columnspan=4, pady=10)
 
-        self.results_button = ctk.CTkButton(frame, text="Show Results", command=self.show_results, fg_color='#17a2b8', text_color='white')
+        self.results_button = ctk.CTkButton(frame, text="Show Results", command=self.show_results)
         self.results_button.grid(row=6, column=0, columnspan=4, pady=10)
 
         self.results_table = ttk.Treeview(frame, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
