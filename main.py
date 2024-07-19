@@ -7,6 +7,7 @@ import os
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 import serial
+import random
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 
@@ -55,6 +56,8 @@ class SlotCarManager(ctk.CTk):
         self.results_window = None
         self.overlay_label = None
 
+        self.disqualified = False
+
         self.create_widgets()
         pygame.mixer.init()
 
@@ -92,6 +95,9 @@ class SlotCarManager(ctk.CTk):
 
         self.start_race_button = ctk.CTkButton(frame, text="Start Race", command=self.start_race, fg_color='#28a745', text_color='white')
         self.start_race_button.grid(row=2, column=2, pady=5, padx=5)
+
+        self.start_race_button = ctk.CTkButton(frame, text="Disqualify", command=self.disqualify, fg_color='#dc3545', text_color='white')
+        self.start_race_button.grid(row=2, column=3, pady=5, padx=5)
 
         self.laps_entry = ctk.CTkEntry(frame)
         self.laps_entry.grid(row=2, column=1, pady=5)
@@ -136,6 +142,9 @@ class SlotCarManager(ctk.CTk):
         self.results_table.column("Best Lap", anchor=tk.CENTER, width=150)
         self.results_table.grid(row=7, column=0, columnspan=4, pady=10, sticky="nsew")
         self.update_results_table()
+
+    def disqualify(self):
+        self.disqualified = True
 
     def set_serial_port(self):
         try:
@@ -249,18 +258,18 @@ class SlotCarManager(ctk.CTk):
                         ser.close()
                         self.show_overlay("Early Start!")
                         self.countdown_label.configure(text="Early Start!")
-                        self.play_countdown_sound("GO")
+                        self.play_countdown_sound(f"false_start/{random.randint(1, 3)}")
                         self.run_race(driver, laps, True, True)
                         return
                     counter = counter + 1
-                    if counter >= 100:
+                    if counter >= 100 and next > 0:
                         counter = 0
-                        self.show_overlay(f"{next}")
+                        self.show_overlay(next)
                         self.countdown_label.configure(text=f"Stage starts in: {next}")
-                        self.play_countdown_sound(next)
+                        self.play_countdown_sound(f"countdown/{next}")
                         next = next - 1
                 self.show_overlay("Go!")
-                self.play_countdown_sound("GO")
+                self.play_countdown_sound("countdown/GO")
                 ser.close()
                 self.run_race(driver, laps, False, False)
         except Exception as e:
@@ -272,26 +281,34 @@ class SlotCarManager(ctk.CTk):
             self.countdown_label.configure(text="")
             lap_times = []
             lap_count = 0
+            count_first_temp = count_first
                 
             while lap_count < laps:
                 lap_start = time.time()
-                lap_end = record_lap_time(self.serial_port, count_first)
-                lap_time = lap_end - lap_start
-                if lap_count == 0 and early_start:
-                    lap_time += self.early_start_penalty
-                driver_found = False
-                for result in self.results:
-                    if result['driver'] == driver:
-                        result['last_time'] = lap_time
-                        driver_found = True
-                        break
-                if not driver_found:
-                    self.results.append({'driver': driver, 'last_time': lap_time, 'best_time': lap_time})
-                save_data('results.json', self.results)
-                self.update_results_table()
-                lap_times.append(lap_time)
-                lap_count += 1
-                self.hide_overlay()
+                lap_end = record_lap_time(self.serial_port, count_first_temp)
+                if not self.disqualified:
+                    count_first_temp = True
+                    lap_time = lap_end - lap_start
+                    if lap_count == 0 and early_start:
+                        lap_time += self.early_start_penalty
+                    driver_found = False
+                    for result in self.results:
+                        if result['driver'] == driver:
+                            result['last_time'] = lap_time
+                            driver_found = True
+                            break
+                    if not driver_found:
+                        self.results.append({'driver': driver, 'last_time': lap_time, 'best_time': lap_time})
+                    save_data('results.json', self.results)
+                    self.update_results_table()
+                    lap_times.append(lap_time)
+                    lap_count += 1
+                    self.hide_overlay()
+                else:
+                    self.disqualified = False
+                    self.play_countdown_sound(f"disqualified/{random.randint(1, 3)}")
+                    self.countdown_label.configure(text="Disqualified")
+                    return
 
             best_lap = min(lap_times)
             last_lap = lap_times[-1]
@@ -309,6 +326,8 @@ class SlotCarManager(ctk.CTk):
 
             save_data('results.json', self.results)
             self.update_results_table()
+            self.countdown_label.configure(text="Finished")
+            self.play_countdown_sound(f"well_done/{random.randint(1, 3)}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to run race: {str(e)}")
 
@@ -409,7 +428,7 @@ class SlotCarManager(ctk.CTk):
         root.protocol("WM_DELETE_WINDOW", self.on_leaderboard_close)
         self.update_results_table()
 
-    def leaderboard_close(self):
+    def on_leaderboard_close(self):
         self.results_window.destroy()
         self.results_window = None
 
