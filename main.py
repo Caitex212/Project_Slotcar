@@ -90,11 +90,14 @@ class SlotCarManager(ctk.CTk):
         self.laps_label = ctk.CTkLabel(frame, text="Number of Laps:")
         self.laps_label.grid(row=2, column=0, pady=5)
 
+        self.start_race_button = ctk.CTkButton(frame, text="Start Race", command=self.start_race, fg_color='#28a745', text_color='white')
+        self.start_race_button.grid(row=2, column=2, pady=5, padx=5)
+
         self.laps_entry = ctk.CTkEntry(frame)
         self.laps_entry.grid(row=2, column=1, pady=5)
 
-        self.start_race_button = ctk.CTkButton(frame, text="Start Race", command=self.start_race, fg_color='#28a745', text_color='white')
-        self.start_race_button.grid(row=2, column=2, pady=5, padx=5)
+        self.scrollable_radiobutton_frame = ScrollableRadiobuttonFrame(master=frame, width=200, item_list=self.drivers)
+        self.scrollable_radiobutton_frame.grid(row=1, column=0, columnspan=4, pady=10, sticky="nsew")
 
         self.port_label = ctk.CTkLabel(frame, text="Serial Port:")
         self.port_label.grid(row=3, column=0, pady=5)
@@ -156,9 +159,9 @@ class SlotCarManager(ctk.CTk):
             if driver_name:
                 if driver_name not in self.drivers:
                     self.drivers.append(driver_name)
+                    self.scrollable_radiobutton_frame.add_item(driver_name)
                     save_data('drivers.json', self.drivers)
                     self.driver_entry.delete(0, tk.END)
-                    self.update_driver_radiobuttons()
                 else:
                     messagebox.showerror("Error", "Driver name already exists.")
             else:
@@ -168,32 +171,22 @@ class SlotCarManager(ctk.CTk):
 
     def remove_driver(self):
         try:
-            selected_driver = self.selected_driver.get()
+            selected_driver = self.scrollable_radiobutton_frame.get_checked_item()
             if selected_driver:
                 driver_name = selected_driver
                 confirm = messagebox.askyesno("Confirm Deletion", f"Are you sure you want to remove {driver_name}?")
                 if confirm:
                     self.drivers.remove(driver_name)
+                    self.scrollable_radiobutton_frame.remove_item(driver_name)
                     self.results = [result for result in self.results if result['driver'] != driver_name]
                     save_data('drivers.json', self.drivers)
                     save_data('results.json', self.results)
                     messagebox.showinfo("Success", f"Driver {driver_name} removed.")
-                    self.update_driver_radiobuttons()
                     self.update_results_table()
             else:
                 messagebox.showerror("Error", "No driver selected.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to remove driver: {str(e)}")
-
-    def update_driver_radiobuttons(self):
-            try:
-                for widget in self.radio_buttons_frame.winfo_children():
-                    widget.destroy()
-                for driver in self.drivers:
-                    radio_button = ctk.CTkRadioButton(self.radio_buttons_frame, text=driver, variable=self.selected_driver, value=driver, fg_color="white", text_color="white", bg_color="#393939")
-                    radio_button.pack(anchor='w', pady=2)
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to update driver radio buttons: {str(e)}")
 
     def get_number_of_times(self):
         try:
@@ -214,9 +207,14 @@ class SlotCarManager(ctk.CTk):
             self.overlay_label = ctk.CTkLabel(self.results_table2, text=text, font=("Helvetica", 128, "bold"), fg_color='#ffffff', text_color='#000000')
             self.overlay_label.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
+    def hide_overlay(self):
+        if self.overlay_label:
+            self.overlay_label.destroy()
+            self.overlay_label = None
+
     def start_race(self):
         try:
-            selected_driver = self.selected_driver.get()
+            selected_driver = self.scrollable_radiobutton_frame.get_checked_item()
             if selected_driver:
                 driver = selected_driver
                 laps = self.get_number_of_laps()
@@ -230,7 +228,7 @@ class SlotCarManager(ctk.CTk):
 
     def play_countdown_sound(self, second):
         try:
-            sound_file = f"_internal/sounds/{second}.wav" #remove _internal if you want to execute from source
+            sound_file = f"sounds/{second}.wav"
             pygame.mixer.Sound(sound_file).play()
         except Exception as e:
             print(f"Failed to play countdown sound: {str(e)}")
@@ -274,13 +272,23 @@ class SlotCarManager(ctk.CTk):
             self.countdown_label.configure(text="")
             lap_times = []
             lap_count = 0
-
+                
             while lap_count < laps:
                 lap_start = time.time()
                 lap_end = record_lap_time(self.serial_port, count_first)
                 lap_time = lap_end - lap_start
                 if lap_count == 0 and early_start:
                     lap_time += self.early_start_penalty
+                driver_found = False
+                for result in self.results:
+                    if result['driver'] == driver:
+                        result['last_time'] = lap_time
+                        driver_found = True
+                        break
+                if not driver_found:
+                    self.results.append({'driver': driver, 'last_time': lap_time, 'best_time': lap_time})
+                save_data('results.json', self.results)
+                self.update_results_table()
                 lap_times.append(lap_time)
                 lap_count += 1
                 self.hide_overlay()
