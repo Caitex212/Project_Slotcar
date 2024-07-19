@@ -13,8 +13,36 @@ from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 from data_manager import load_data, save_data
 from serial_communication import record_lap_time
 
-class SlotCarManager:
+class ScrollableRadiobuttonFrame(ctk.CTkScrollableFrame):
+    def __init__(self, master, item_list, command=None, **kwargs):
+        super().__init__(master, **kwargs)
+
+        self.command = command
+        self.radiobutton_variable = ctk.StringVar()
+        self.radiobutton_list = []
+        for i, item in enumerate(item_list):
+            self.add_item(item)
+
+    def add_item(self, item):
+        radiobutton = ctk.CTkRadioButton(self, text=item, value=item, variable=self.radiobutton_variable)
+        if self.command is not None:
+            radiobutton.configure(command=self.command)
+        radiobutton.grid(row=len(self.radiobutton_list), column=0, pady=(0, 10))
+        self.radiobutton_list.append(radiobutton)
+
+    def remove_item(self, item):
+        for radiobutton in self.radiobutton_list:
+            if item == radiobutton.cget("text"):
+                radiobutton.destroy()
+                self.radiobutton_list.remove(radiobutton)
+                return
+
+    def get_checked_item(self):
+        return self.radiobutton_variable.get()
+
+class SlotCarManager(ctk.CTk):
     def __init__(self, root):
+        super().__init__()
         self.root = root
         self.root.title("Slot Car Rally Manager")
 
@@ -54,19 +82,10 @@ class SlotCarManager:
 
         self.remove_driver_button = ctk.CTkButton(frame, text="Remove Driver", command=self.remove_driver, fg_color='#dc3545', text_color='white')
         self.remove_driver_button.grid(row=0, column=3, pady=5, padx=5)
-
-        listbox_frame = ctk.CTkFrame(frame)
-        listbox_frame.grid(row=1, column=0, columnspan=4, pady=10, sticky="nsew")
-
-        self.scrollbar = ctk.CTkScrollbar(listbox_frame, orientation="vertical")
-        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        self.driver_listbox = tk.Listbox(listbox_frame, yscrollcommand=self.scrollbar.set)
-        self.driver_listbox.configure(background="#393939", foreground="white")
-        self.driver_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        self.scrollbar.configure(command=self.driver_listbox.yview)
-        self.update_driver_listbox()
+        
+        self.scrollable_radiobutton_frame = ScrollableRadiobuttonFrame(master=self, width=200,
+                                                                       item_list=self.drivers)
+        self.scrollable_radiobutton_frame.grid(row=1, column=0, columnspan=4, pady=10, sticky="nsew")
 
         self.laps_label = ctk.CTkLabel(frame, text="Number of Laps:")
         self.laps_label.grid(row=2, column=0, pady=5)
@@ -139,7 +158,7 @@ class SlotCarManager:
                     self.drivers.append(driver_name)
                     save_data('drivers.json', self.drivers)
                     self.driver_entry.delete(0, tk.END)
-                    self.update_driver_listbox()
+                    self.update_driver_radiobuttons()
                 else:
                     messagebox.showerror("Error", "Driver name already exists.")
             else:
@@ -149,9 +168,9 @@ class SlotCarManager:
 
     def remove_driver(self):
         try:
-            selected_driver = self.driver_listbox.curselection()
+            selected_driver = self.selected_driver.get()
             if selected_driver:
-                driver_name = self.driver_listbox.get(selected_driver)
+                driver_name = selected_driver
                 confirm = messagebox.askyesno("Confirm Deletion", f"Are you sure you want to remove {driver_name}?")
                 if confirm:
                     self.drivers.remove(driver_name)
@@ -159,20 +178,22 @@ class SlotCarManager:
                     save_data('drivers.json', self.drivers)
                     save_data('results.json', self.results)
                     messagebox.showinfo("Success", f"Driver {driver_name} removed.")
-                    self.update_driver_listbox()
+                    self.update_driver_radiobuttons()
                     self.update_results_table()
             else:
                 messagebox.showerror("Error", "No driver selected.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to remove driver: {str(e)}")
 
-    def update_driver_listbox(self):
-        try:
-            self.driver_listbox.delete(0, tk.END)
-            for driver in self.drivers:
-                self.driver_listbox.insert(tk.END, driver)
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to update driver list: {str(e)}")
+    def update_driver_radiobuttons(self):
+            try:
+                for widget in self.radio_buttons_frame.winfo_children():
+                    widget.destroy()
+                for driver in self.drivers:
+                    radio_button = ctk.CTkRadioButton(self.radio_buttons_frame, text=driver, variable=self.selected_driver, value=driver, fg_color="white", text_color="white", bg_color="#393939")
+                    radio_button.pack(anchor='w', pady=2)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to update driver radio buttons: {str(e)}")
 
     def get_number_of_times(self):
         try:
@@ -195,9 +216,9 @@ class SlotCarManager:
 
     def start_race(self):
         try:
-            selected_driver = self.driver_listbox.curselection()
+            selected_driver = self.selected_driver.get()
             if selected_driver:
-                driver = self.driver_listbox.get(selected_driver)
+                driver = selected_driver
                 laps = self.get_number_of_laps()
                 
                 if driver and laps:
@@ -405,7 +426,7 @@ class SlotCarManager:
             best_time = result.get("last_time", "")
             row = [rank, driver, lap_times, best_time]
             for col_num, value in enumerate(row, 1):
-                cell = sheet.cell(row=rank + 1, column=col_num, value=value)
+                cell = sheet.cell(radio_framectkrow=rank + 1, column=col_num, value=value)
                 cell.alignment = Alignment(horizontal='center')
         file_path = "race_results.xlsx"
         workbook.save(file_path)
