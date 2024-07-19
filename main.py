@@ -55,9 +55,17 @@ class SlotCarManager:
         self.remove_driver_button = ctk.CTkButton(frame, text="Remove Driver", command=self.remove_driver, fg_color='#dc3545', text_color='white')
         self.remove_driver_button.grid(row=0, column=3, pady=5, padx=5)
 
-        self.driver_listbox = tk.Listbox(frame)
+        listbox_frame = ctk.CTkFrame(frame)
+        listbox_frame.grid(row=1, column=0, columnspan=4, pady=10, sticky="nsew")
+
+        self.scrollbar = ctk.CTkScrollbar(listbox_frame, orientation="vertical")
+        self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.driver_listbox = tk.Listbox(listbox_frame, yscrollcommand=self.scrollbar.set)
         self.driver_listbox.configure(background="#393939", foreground="white")
-        self.driver_listbox.grid(row=1, column=0, columnspan=4, pady=10, sticky="nsew")
+        self.driver_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.scrollbar.configure(command=self.driver_listbox.yview)
         self.update_driver_listbox()
 
         self.laps_label = ctk.CTkLabel(frame, text="Number of Laps:")
