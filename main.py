@@ -11,8 +11,17 @@ import serial
 import random
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+import logging
 
 from data_manager import load_data, save_data
+
+log_folder = 'logs'
+os.makedirs(log_folder, exist_ok=True)
+logging.basicConfig(
+    filename=os.path.join(log_folder, 'project_slotcar.log'),
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 class ScrollableRadiobuttonFrame(ctk.CTkScrollableFrame):
     def __init__(self, master, item_list, command=None, **kwargs):
@@ -62,6 +71,7 @@ class SlotCarManager(ctk.CTk):
         pygame.mixer.init()
 
         self.save_settings()
+        logging.info("SlotCarManager initialized")
 
     def save_settings(self):
         settings = {
@@ -142,25 +152,31 @@ class SlotCarManager(ctk.CTk):
         self.results_table.column("Best Lap", anchor=tk.CENTER, width=150)
         self.results_table.grid(row=7, column=0, columnspan=4, pady=10, sticky="nsew")
         self.update_results_table()
+        logging.info("Widgets created")
 
     def disqualify(self):
         self.disqualified = True
+        logging.info("Driver disqualified")
 
     def set_serial_port(self):
         try:
             self.serial_port = self.port_entry.get()
             self.save_settings()
             messagebox.showinfo("Serial Port Set", f"Serial port set to {self.serial_port}")
+            logging.info(f"Serial port set to {self.serial_port}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to set serial port: {str(e)}")
+            logging.error(f"Failed to set serial port: {str(e)}")
 
     def set_early_start_penalty(self):
         try:
             self.early_start_penalty = int(self.penalty_entry.get())
             self.save_settings()
             messagebox.showinfo("Penalty Set", f"Early start penalty set to {self.early_start_penalty} seconds")
+            logging.info(f"Early start penalty set to {self.early_start_penalty} seconds")
         except ValueError:
             messagebox.showerror("Error", "Invalid penalty value. Please enter an integer.")
+            logging.error("Invalid penalty value entered")
 
     def add_driver(self):
         try:
@@ -173,10 +189,13 @@ class SlotCarManager(ctk.CTk):
                     self.driver_entry.delete(0, tk.END)
                 else:
                     messagebox.showerror("Error", "Driver name already exists.")
+                    logging.warning(f"Attempted to add duplicate driver: {driver_name}")
             else:
                 messagebox.showerror("Error", "Driver name cannot be empty.")
+                logging.warning("Attempted to add empty driver name")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to add driver: {str(e)}")
+            logging.error(f"Failed to add driver: {str(e)}")
 
     def remove_driver(self):
         try:
@@ -194,8 +213,10 @@ class SlotCarManager(ctk.CTk):
                     self.update_results_table()
             else:
                 messagebox.showerror("Error", "No driver selected.")
+                logging.warning("Attempted to remove driver with no selection")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to remove driver: {str(e)}")
+            logging.error(f"Failed to remove driver: {str(e)}")
 
     def get_number_of_times(self):
         try:
@@ -204,9 +225,11 @@ class SlotCarManager(ctk.CTk):
                 return laps
             else:
                 messagebox.showerror("Error", "Number of laps must be greater than zero.")
+                logging.error("Number of laps must be greater than zero.")
                 return None
         except ValueError:
             messagebox.showerror("Error", "Invalid number of laps. Please enter an integer.")
+            logging.error("Invalid number of laps. Please enter an integer.")
             return None
         
     def show_overlay(self, text):
@@ -231,9 +254,11 @@ class SlotCarManager(ctk.CTk):
                 if driver and laps:
                     threading.Thread(target=self.countdown, args=(5, driver, laps)).start()  # 5 second countdown
             else:
+                logging.warning("Attempted to start race with no driver selected")
                 messagebox.showerror("Error", "No driver selected.")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to start race: {str(e)}")
+            logging.error(f"Failed to start race: {str(e)}")
 
     def play_sound(self, second):
         try:
@@ -242,6 +267,7 @@ class SlotCarManager(ctk.CTk):
             pygame.mixer.Sound(sound_file).play()
         except Exception as e:
             print(f"Failed to play sound: {str(e)}")
+            logging.error(f"Failed to play sound: {str(e)}")
 
     def get_data_path(self,relative_path):
         if getattr(sys, 'frozen', False):
@@ -286,6 +312,7 @@ class SlotCarManager(ctk.CTk):
                 self.run_race(driver, laps, False, False)
         except Exception as e:
             messagebox.showerror("Error", f"Serial communication error: {str(e)}")
+            logging.error(f"Serial communication error: {str(e)}")
             return False
 
     def run_race(self, driver, laps, early_start, count_first):
@@ -294,6 +321,7 @@ class SlotCarManager(ctk.CTk):
             lap_times = []
             lap_count = 0
             count_first_temp = count_first
+            logging.info("Started race...")
                 
             while lap_count < laps:
                 lap_start = time.time()
@@ -312,6 +340,7 @@ class SlotCarManager(ctk.CTk):
                             self.disqualified = False
                             self.play_sound(f"disqualified/{random.randint(1, 3)}")
                             self.countdown_label.configure(text="Disqualified")
+                            logging.info("Disqualified")
                             return
                 lap_time = lap_end - lap_start
                 if lap_count == 0 and early_start:
@@ -330,6 +359,7 @@ class SlotCarManager(ctk.CTk):
                     self.results.append({'driver': driver, 'last_time': lap_time, 'best_time': lap_time})
                 save_data('results.json', self.results)
                 self.update_results_table()
+                logging.info("Finished race...")
                 
             save_data('results.json', self.results)
             self.update_results_table()
@@ -337,6 +367,7 @@ class SlotCarManager(ctk.CTk):
             self.play_sound(f"well_done/{random.randint(1, 3)}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to run race: {str(e)}")
+            logging.error(f"Failed to run race: {str(e)}")
 
     def update_results_table(self):
         try:
@@ -355,10 +386,11 @@ class SlotCarManager(ctk.CTk):
                         self.results_table2.tag_configure('oddrow', background='white')
                         self.results_table2.tag_configure('evenrow', background='#f0f0f0')
                 except Exception as e:
-                    print("Error", f"Failed to update results table: {str(e)}")
+                    logging.error(f"Failed to update results table: {str(e)}")
             self.dump_leaderboard_to_excel()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update results table: {str(e)}")
+            logging.error(f"Failed to update results table: {str(e)}")
     
     def get_number_of_laps(self):
         try:
@@ -367,9 +399,11 @@ class SlotCarManager(ctk.CTk):
                 return laps
             else:
                 messagebox.showerror("Error", "Number of laps must be greater than zero.")
+                logging.warning("Invalid laps value entered")
                 return None
         except ValueError:
             messagebox.showerror("Error", "Invalid number of laps. Please enter an integer.")
+            logging.warning("Invalid laps data type entered")
             return None
 
     def dump_leaderboard_to_excel(self):
@@ -418,6 +452,7 @@ class SlotCarManager(ctk.CTk):
             wb.save("leaderboard.xlsx")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to dump leaderboard to Excel: {str(e)}")
+            logging.error(f"Failed to dump leaderboard to Excel: {str(e)}")
 
     def show_results(self):
         if self.results_window and self.results_window.winfo_exists():
@@ -436,13 +471,7 @@ class SlotCarManager(ctk.CTk):
         self.results_table2.column("Best Lap", anchor=tk.CENTER, width=150)
         self.results_table2.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
         self.update_results_table()
-
-    def show_race_results(self, result):
-        if self.results_window and self.results_window.winfo_exists():
-            self.results_window.lift()
-            self.update_results_table2()
-        else:
-            self.show_results()
+        logging.info("Results window created")
 
     def export_results_to_excel(self):
         workbook = Workbook()
@@ -467,6 +496,7 @@ class SlotCarManager(ctk.CTk):
         file_path = "race_results.xlsx"
         workbook.save(file_path)
         messagebox.showinfo("Export Successful", f"Results exported to {file_path}")
+        logging.info(f"Results exported to {file_path}")
 
     def on_close(self):
         pygame.mixer.quit()
