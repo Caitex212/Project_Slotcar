@@ -108,11 +108,11 @@ class CameraApp:
             self.cap.release()
         self.root.destroy()
 
-if __name__ == "__main__":
+def open_camera_window():
     ctk.set_appearance_mode("System")  # Modes: "System" (default), "Dark", "Light"
     ctk.set_default_color_theme("blue")  # Themes: "blue" (default), "green", "dark-blue"
-
-    root = ctk.CTk()
-    app = CameraApp(root)
-    root.protocol("WM_DELETE_WINDOW", app.on_closing)
-    root.mainloop()
+    new_window = ctk.CTkToplevel()
+    new_window.title("Camera Stream")
+    CameraApp(new_window)
+    new_window.protocol("WM_DELETE_WINDOW", lambda: new_window.destroy())
+    new_window.lift()

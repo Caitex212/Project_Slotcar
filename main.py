@@ -13,6 +13,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
 import logging
 
+from camera import open_camera_window
 from data_manager import load_data, save_data
 
 log_folder = 'logs'
@@ -139,7 +140,9 @@ class SlotCarManager(ctk.CTk):
         self.countdown_label.grid(row=5, column=0, columnspan=4, pady=10)
 
         self.results_button = ctk.CTkButton(frame, text="Show Results", command=self.show_results)
-        self.results_button.grid(row=6, column=0, columnspan=4, pady=10)
+        self.results_button.grid(row=6, column=0, columnspan=3, pady=10)
+        self.results_button = ctk.CTkButton(frame, text="Open Camera", command=lambda: threading.Thread(target=open_camera_window).start())
+        self.results_button.grid(row=6, column=1, columnspan=4, pady=10)
 
         self.results_table = ttk.Treeview(frame, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
         self.results_table.heading("Rank", text="Pos")
