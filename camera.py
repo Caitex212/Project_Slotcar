@@ -18,7 +18,7 @@ class CameraApp:
         self.label.pack(pady=10)
 
         self.radio_var = tk.IntVar()
-        self.radio_var.set(-1)  # No camera selected initially
+        self.radio_var.set(-1)
 
         self.radio_frame = ctk.CTkFrame(self.root)
         self.radio_frame.pack(pady=10)
@@ -38,7 +38,7 @@ class CameraApp:
 
     def get_available_cameras(self):
         available_cameras = []
-        for i in range(10):  # Check first 10 indexes.
+        for i in range(10):
             cap = cv2.VideoCapture(i)
             if cap.isOpened():
                 available_cameras.append(f"Camera {i}")
