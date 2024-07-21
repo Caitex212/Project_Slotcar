@@ -6,7 +6,7 @@ import cv2
 class CameraApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Camera Selector")
+        self.root.title("Camera Stream")
         self.camera_index = None
         self.cap = None
 
@@ -59,6 +59,12 @@ class CameraApp:
             self.root.destroy()
             return
 
+        ret, img = self.cap.read()
+        if ret:
+            h, w = img.shape[:2]
+            self.root.geometry(f"{w}x{h}")
+            self.root.minsize(w, h)
+
         self.canvas = tk.Canvas(self.root)
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
@@ -69,10 +75,20 @@ class CameraApp:
         data = f'P6 {w} {h} 255 '.encode() + img[..., ::-1].tobytes()
         return PhotoImage(width=w, height=h, data=data, format='PPM')
 
+    def resize_image(self, img, width, height):
+        h, w = img.shape[:2]
+        scale = min(width / w, height / h)
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+        return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+
     def update_frame(self):
         if self.cap and self.cap.isOpened():
             ret, img = self.cap.read()
             if ret:
+                width = self.root.winfo_width()
+                height = self.root.winfo_height()
+                img = self.resize_image(img, width, height)
                 photo = self.photo_image(img)
                 self.canvas.create_image(0, 0, image=photo, anchor=NW)
                 self.canvas.image = photo
