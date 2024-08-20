@@ -66,6 +66,9 @@ class SlotCarManager(ctk.CTk):
         self.results_window = None
         self.overlay_label = None
 
+        self.debounce_interval = 500  # milliseconds
+        self.debounce_timer = None
+
         self.disqualified = False
 
         self.create_widgets()
@@ -142,7 +145,7 @@ class SlotCarManager(ctk.CTk):
         self.results_button = ctk.CTkButton(frame, text="Show Results", command=self.show_results)
         self.results_button.grid(row=6, column=0, sticky="nsew", pady=10, padx=(10,10))
 
-        self.font_size_slider = ctk.CTkSlider(frame, from_=10, to=100, command=self.on_font_size_change)
+        self.font_size_slider = ctk.CTkSlider(frame, from_=10, to=100, command=self.on_slider_change)
         self.font_size_slider.set(10)  # Set default value
         self.font_size_slider.grid(row=6, column=1, sticky="nsew", pady=10, padx=(10,10))
 
@@ -490,9 +493,12 @@ class SlotCarManager(ctk.CTk):
             style = ttk.Style()
             style.configure("ResultsWindow.Treeview.Heading", font=custom_font)
             style.configure("ResultsWindow.Treeview", font=custom_font)
+    
+    def on_slider_change(self, value):
+        if self.debounce_timer:
+            self.root.after_cancel(self.debounce_timer)
 
-    def on_font_size_change(self, value):
-        self.update_font_size(int(float(value)))
+        self.debounce_timer = self.root.after(self.debounce_interval, self.update_font_size, int(float(value)))
 
     def export_results_to_excel(self):
         workbook = Workbook()
