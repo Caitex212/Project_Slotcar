@@ -140,9 +140,14 @@ class SlotCarManager(ctk.CTk):
         self.countdown_label.grid(row=5, column=0, columnspan=4, pady=10)
 
         self.results_button = ctk.CTkButton(frame, text="Show Results", command=self.show_results)
-        self.results_button.grid(row=6, column=0, columnspan=3, pady=10)
-        self.results_button = ctk.CTkButton(frame, text="Open Camera", command=lambda: threading.Thread(target=open_camera_window).start())
-        self.results_button.grid(row=6, column=1, columnspan=4, pady=10)
+        self.results_button.grid(row=6, column=0, sticky="nsew", pady=10, padx=(10,10))
+
+        self.font_size_slider = ctk.CTkSlider(frame, from_=10, to=100, command=self.on_font_size_change)
+        self.font_size_slider.set(10)  # Set default value
+        self.font_size_slider.grid(row=6, column=1, sticky="nsew", pady=10, padx=(10,10))
+
+        self.open_camera_button = ctk.CTkButton(frame, text="Open Camera", command=lambda: threading.Thread(target=open_camera_window).start())
+        self.open_camera_button.grid(row=6, column=2, sticky="nsew", pady=10, padx=(10,10))
 
         self.results_table = ttk.Treeview(frame, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
         self.results_table.heading("Rank", text="Pos")
@@ -253,7 +258,6 @@ class SlotCarManager(ctk.CTk):
             if selected_driver:
                 driver = selected_driver
                 laps = self.get_number_of_laps()
-                
                 if driver and laps:
                     threading.Thread(target=self.countdown, args=(5, driver, laps)).start()  # 5 second countdown
             else:
@@ -461,9 +465,10 @@ class SlotCarManager(ctk.CTk):
         if self.results_window and self.results_window.winfo_exists():
             self.results_window.lift()
             return
+        
         self.results_window = ctk.CTkToplevel(self.root)
         self.results_window.title("Race Results")
-        self.results_table2 = ttk.Treeview(self.results_window, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="Custom.Treeview")
+        self.results_table2 = ttk.Treeview(self.results_window, columns=("Rank", "Driver", "Last Lap", "Best Lap"), show='headings', style="ResultsWindow.Treeview")
         self.results_table2.heading("Rank", text="Pos")
         self.results_table2.heading("Driver", text="Driver")
         self.results_table2.heading("Last Lap", text="Last Lap (s)")
@@ -475,6 +480,19 @@ class SlotCarManager(ctk.CTk):
         self.results_table2.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
         self.update_results_table()
         logging.info("Results window created")
+
+    def update_font_size(self, size):
+        if self.results_window:
+            #width = self.results_window.winfo_width()
+            #height = self.results_window.winfo_height()
+            #font_size = max(10, int(min(width, height) * 0.03))
+            custom_font = ("Arial", size, "bold")
+            style = ttk.Style()
+            style.configure("ResultsWindow.Treeview.Heading", font=custom_font)
+            style.configure("ResultsWindow.Treeview", font=custom_font)
+
+    def on_font_size_change(self, value):
+        self.update_font_size(int(float(value)))
 
     def export_results_to_excel(self):
         workbook = Workbook()
