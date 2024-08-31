@@ -383,10 +383,17 @@ class SlotCarManager(ctk.CTk):
         try:
             self.results_table.delete(*self.results_table.get_children())
             sorted_results = sorted([result for result in self.results if 'best_time' in result], key=lambda x: x['best_time'])
+            font_size = self.font_size_slider.get()
+            row_height = int(font_size * 1.5)
+            
+            style = ttk.Style()
+            style.configure("ResultsWindow.Treeview", rowheight=row_height)
+
             for index, result in enumerate(sorted_results, start=1):
                 self.results_table.insert("", tk.END, values=(index, result['driver'], f"{result['last_time']:.3f}", f"{result['best_time']:.3f}"), tags=('oddrow' if index % 2 == 0 else 'evenrow'))
                 self.results_table.tag_configure('oddrow', background='white')
                 self.results_table.tag_configure('evenrow', background='#f0f0f0')
+            
             if self.results_window:
                 try:
                     self.results_table2.delete(*self.results_table2.get_children())
@@ -397,10 +404,12 @@ class SlotCarManager(ctk.CTk):
                         self.results_table2.tag_configure('evenrow', background='#f0f0f0')
                 except Exception as e:
                     logging.error(f"Failed to update results table: {str(e)}")
+            
             self.dump_leaderboard_to_excel()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update results table: {str(e)}")
             logging.error(f"Failed to update results table: {str(e)}")
+
     
     def get_number_of_laps(self):
         try:
@@ -493,6 +502,7 @@ class SlotCarManager(ctk.CTk):
             style = ttk.Style()
             style.configure("ResultsWindow.Treeview.Heading", font=custom_font)
             style.configure("ResultsWindow.Treeview", font=custom_font)
+            self.update_results_table()
     
     def on_slider_change(self, value):
         if self.debounce_timer:
